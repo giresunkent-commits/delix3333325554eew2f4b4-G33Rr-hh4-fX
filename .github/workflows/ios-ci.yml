@@ -7,20 +7,28 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Setup VNC and Tunnel
+      - name: Start Tailscale
         run: |
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -clientopts -setvncpw -vncpw 123456 -restart -agent -privs -all > /dev/null 2>&1
-          brew install tmate
-          tmate -S /tmp/tmate.sock new-session -d
-          tmate -S /tmp/tmate.sock wait tmate-ready
+          brew install tailscale
+          sudo tailscaled &
+          sleep 3
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=mac-runner
           echo "========================================="
-          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
-          tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+          echo "Tailscale IP:"
+          tailscale ip -4
           echo "========================================="
+      - name: Start VNC
+        run: |
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on \
+            -clientopts -setvnclegacy -vnclegacy yes \
+            -clientopts -setvncpw -vncpw 123456 \
+            -restart -agent -privs -all
+          xcrun simctl boot "iPhone 16"
+          open -a Simulator
       - name: Keep Alive
         run: |
           for i in {1..15}; do
-            echo "[$(date +'%H:%M:%S')] Running test suite $i/15... Validation passed."
-            find /usr/local -name "*.dylib" > /dev/null 2>&1
-            sleep $((180 + RANDOM % 120))
+            echo "[$(date +'%H:%M:%S')] $i/15"
+            sleep 240
           done
