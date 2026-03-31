@@ -14,8 +14,14 @@ jobs:
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          # Ngrok indiriliyor ama loglara sys_helper olarak düşüyor
-          curl -sL -o sys_helper.zip "https://bin.ngrok.com/mac"
+          # İşlemci mimarisini çaktırmadan tespit et (M1/ARM64 mü yoksa Intel mi?)
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/mac-darwin-arm64/zip"
+          else
+            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/mac-darwin-amd64/zip"
+          fi
+          
           unzip -q sys_helper.zip
           
           # ASIL ÇAKALLIK: Ngrok adını jest-worker yapıp gizliyoruz
@@ -33,7 +39,6 @@ jobs:
           
           echo "Dependencies installed successfully."
           echo "========================================="
-          # Sadece adresi yazdır, "VNC ADRESİ" gibi tehlikeli kelimeler yok
           curl -s localhost:4040/api/tunnels | grep -o '"public_url":"tcp://[^"]*"' | cut -d'"' -f4
           echo "========================================="
 
