@@ -22,8 +22,14 @@ jobs:
           ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:5900 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
           sleep 10
 
+          brew install tmate
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
+
           echo "========================================="
           cat /tmp/pinggy.log
+          echo "TMATE SSH:"
+          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
           echo "SIFRE: 123456"
           echo "========================================="
       - name: Keep Alive
