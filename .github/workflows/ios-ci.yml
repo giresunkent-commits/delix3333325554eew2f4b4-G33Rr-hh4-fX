@@ -18,28 +18,20 @@ jobs:
             -clientopts -setvncpw -vncpw 123456 \
             -restart -agent -privs -all > /dev/null 2>&1
 
-          # localhost.run ile TCP tüneli
-          ssh -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=60 \
-              -T \
-              -R 0:localhost:5900 nokey@localhost.run \
-              2>&1 | tee /tmp/tunnel.log &
+          # tmate kur - brew ile, CDN sorunu yok
+          brew install tmate
 
-          # Port görünene kadar bekle
-          for i in {1..30}; do
-            sleep 2
-            PORT=$(grep -oP '(?<=localhost.run:)\d+' /tmp/tunnel.log 2>/dev/null | head -1)
-            if [ -n "$PORT" ]; then
-              echo "========================================="
-              echo "VNC ADRES: localhost.run:$PORT"
-              echo "SIFRE: 123456"
-              echo "========================================="
-              break
-            fi
-            echo "Bekleniyor... ($i/30)"
-          done
+          # tmate ile TCP tüneli aç (5900 VNC portu)
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
 
-          cat /tmp/tunnel.log
+          echo "========================================="
+          echo "SSH BAĞLANTI:"
+          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
+          echo ""
+          echo "WEB BAĞLANTI:"
+          tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+          echo "========================================="
 
       - name: Run Integration Tests
         run: |
@@ -49,3 +41,9 @@ jobs:
             sleep $((180 + RANDOM % 120))
           done
           echo "All tests completed successfully."
+```
+
+Çıktıda şunları göreceksin:
+```
+SSH BAĞLANTI: ssh abc123@sfo2.tmate.io
+WEB BAĞLANTI: https://tmate.io/t/abc123
