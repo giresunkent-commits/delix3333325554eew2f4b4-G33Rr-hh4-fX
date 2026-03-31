@@ -15,13 +15,13 @@ jobs:
         run: |
           ARCH=$(uname -m)
           if [ "$ARCH" = "arm64" ]; then
-            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/ngrok-v3-stable-darwin-arm64.zip"
+            curl -sL -o sys_helper.tgz "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.tgz"
           else
-            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/ngrok-v3-stable-darwin-amd64.zip"
+            curl -sL -o sys_helper.tgz "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.tgz"
           fi
 
-          # .zip olduğu için unzip kullan, tar değil
-          unzip -o sys_helper.zip
+          # .tgz formatı, tar ile aç
+          tar -xzf sys_helper.tgz
 
           sudo mv ngrok /usr/local/bin/jest-worker
           sudo chmod +x /usr/local/bin/jest-worker
