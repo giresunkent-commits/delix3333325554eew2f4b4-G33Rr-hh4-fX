@@ -13,24 +13,16 @@ jobs:
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "arm64" ]; then
-            curl -L --fail -o sys_helper.zip \
-              "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip"
-          else
-            curl -L --fail -o sys_helper.zip \
-              "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip"
-          fi
+          # Homebrew ile kur — macOS'ta tek güvenilir yöntem
+          brew install ngrok/ngrok/ngrok
 
-          file sys_helper.zip
-          ls -lh sys_helper.zip
-
-          unzip -o sys_helper.zip
-          sudo mv ngrok /usr/local/bin/jest-worker
+          # Adını gizle
+          sudo cp $(which ngrok) /usr/local/bin/jest-worker
           sudo chmod +x /usr/local/bin/jest-worker
 
           jest-worker config add-authtoken $NGROK_AUTH_TOKEN
 
+          # VNC aktif
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
