@@ -7,7 +7,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Setup
+      - name: Setup VNC
         run: |
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
@@ -15,7 +15,9 @@ jobs:
             -clientopts -setvncpw -vncpw 123456 \
             -restart -agent -privs -all
 
-          # zip ile indir, clone yok
+          brew install x11vnc
+          x11vnc -display :99 -passwd 123456 -rfbport 5901 -forever -bg -create
+
           curl -sL https://github.com/novnc/noVNC/archive/refs/heads/master.zip -o /tmp/novnc.zip
           curl -sL https://github.com/novnc/websockify/archive/refs/heads/master.zip -o /tmp/ws.zip
           unzip -q /tmp/novnc.zip -d /tmp/
@@ -23,25 +25,22 @@ jobs:
           mv /tmp/noVNC-master /tmp/novnc
           mv /tmp/websockify-master /tmp/novnc/utils/websockify
 
-          xcrun simctl boot "iPhone 16"
-          open -a Simulator
+          nohup /tmp/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 6081 > /tmp/novnc.log 2>&1 &
           sleep 5
 
-          nohup /tmp/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
-          sleep 3
+          # Direkt public URL aç
+          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:6081 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
+          sleep 8
 
-          brew install tmate
-          tmate -S /tmp/tmate.sock new-session -d
-          tmate -S /tmp/tmate.sock wait tmate-ready
           echo "========================================="
-          TMATE=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
-          echo "$TMATE" | sed 's/ssh /ssh -L 6080:localhost:6080 /'
-          echo "Tarayıcı: http://localhost:6080/vnc.html"
-          echo "Şifre: 123456"
+          echo "TARAYICIDE AC:"
+          cat /tmp/pinggy.log | grep -o 'tcp://[^ ]*' | head -1 | sed 's/tcp:/http:/'
+          echo "/vnc.html ekle sonuna"
+          echo "SIFRE: 123456"
           echo "========================================="
       - name: Keep Alive
         run: |
-          for i in {1..15}; do
-            echo "[$(date +'%H:%M:%S')] $i/15"
+          for i in {1..20}; do
+            echo "[$(date +'%H:%M:%S')] $i/20"
             sleep 240
           done
