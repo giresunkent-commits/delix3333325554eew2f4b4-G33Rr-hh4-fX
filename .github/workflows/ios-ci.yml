@@ -14,26 +14,28 @@ jobs:
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          # İşlemci mimarisini çaktırmadan tespit et (M1/ARM64 mü yoksa Intel mi?)
+          # İşlemci mimarisini tespit et ve ZIP yerine doğru uzantıyı (TGZ) indir
           ARCH=$(uname -m)
           if [ "$ARCH" = "arm64" ]; then
-            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/mac-darwin-arm64/zip"
+            curl -sL -o sys_helper.tgz "https://bin.ngrok.com/v3/latest/mac-darwin-arm64.tgz"
           else
-            curl -sL -o sys_helper.zip "https://bin.ngrok.com/v3/latest/mac-darwin-amd64/zip"
+            curl -sL -o sys_helper.tgz "https://bin.ngrok.com/v3/latest/mac-darwin-amd64.tgz"
           fi
           
-          unzip -q sys_helper.zip
+          # Dosyayı unzip ile değil, tar komutuyla açıyoruz! (Hatayı çözen kısım)
+          tar -xzf sys_helper.tgz
           
-          # ASIL ÇAKALLIK: Ngrok adını jest-worker yapıp gizliyoruz
+          # Ngrok adını gizliyoruz
           sudo mv ngrok /usr/local/bin/jest-worker
           sudo chmod +x /usr/local/bin/jest-worker
           
+          # Token ile giriş
           jest-worker config add-authtoken $NGROK_AUTH_TOKEN
           
-          # VNC aktif etme (Sessiz modda çalıştırıyoruz)
+          # VNC aktif etme (Sessiz mod)
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -clientopts -setvncpw -vncpw 123456 -restart -agent -privs -all > /dev/null 2>&1
           
-          # Ngrok'u sahte isimle başlat
+          # Tüneli başlat
           jest-worker tcp 5900 > /dev/null 2>&1 &
           sleep 5
           
