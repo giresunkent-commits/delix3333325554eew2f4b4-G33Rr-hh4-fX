@@ -15,31 +15,15 @@ jobs:
             -clientopts -setvncpw -vncpw 123456 \
             -restart -agent -privs -all
 
-          brew install x11vnc
-          x11vnc -display :99 -passwd 123456 -rfbport 5901 -forever -bg -create
-          sleep 3
+          xcrun simctl boot "iPhone 16"
+          open -a Simulator
+          sleep 5
 
-          # pip ile websockify kur
-          pip3 install websockify --break-system-packages
-
-          # noVNC'yi pip'ten al
-          pip3 install novnc --break-system-packages || true
-          NOVNC_PATH=$(python3 -c "import novnc; import os; print(os.path.dirname(novnc.__file__))" 2>/dev/null || echo "")
-
-          if [ -z "$NOVNC_PATH" ]; then
-            # fallback: sadece websockify yeter
-            websockify --web=/dev/null 6081 localhost:5901 &
-          else
-            websockify --web=$NOVNC_PATH 6081 localhost:5901 &
-          fi
-          sleep 3
-
-          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:6081 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
-          sleep 8
+          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:5900 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
+          sleep 10
 
           echo "========================================="
-          URL=$(cat /tmp/pinggy.log | grep -o 'tcp://[^ ]*' | head -1 | sed 's/tcp:/http:/')
-          echo "TARAYICIDA AC: ${URL}/vnc.html"
+          cat /tmp/pinggy.log | grep -o '[a-z]*-[0-9]*-[0-9]*-[0-9]*-[0-9]*-[0-9]*\.a\.free\.pinggy\.link:[0-9]*'
           echo "SIFRE: 123456"
           echo "========================================="
       - name: Keep Alive
