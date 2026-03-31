@@ -42,7 +42,3 @@ jobs:
             echo "[$(date +'%H:%M:%S')] $i/15"
             sleep 240
           done
-
-Sonra tarayıcıda aç:
-```
-http://localhost:6080/vnc.html
