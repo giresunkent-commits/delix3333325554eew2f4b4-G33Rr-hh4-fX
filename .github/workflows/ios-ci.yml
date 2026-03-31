@@ -7,28 +7,38 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Start Tailscale
-        run: |
-          brew install tailscale
-          sudo tailscaled &
-          sleep 3
-          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=mac-runner
-          echo "========================================="
-          echo "Tailscale IP:"
-          tailscale ip -4
-          echo "========================================="
-      - name: Start VNC
+      - name: Setup
         run: |
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
             -clientopts -setvncpw -vncpw 123456 \
             -restart -agent -privs -all
+          brew install noVNC
           xcrun simctl boot "iPhone 16"
           open -a Simulator
+          websockify --web=$(brew --prefix novnc)/share/novnc 6080 localhost:5900 &
+          sleep 3
+          brew install tmate
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
+          echo "========================================="
+          echo "SSH:"
+          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
+          echo "========================================="
       - name: Keep Alive
         run: |
           for i in {1..15}; do
             echo "[$(date +'%H:%M:%S')] $i/15"
             sleep 240
           done
+```
+
+Çalışınca PowerShell'de:
+```
+ssh -L 6080:localhost:6080 YENİ_TMATE_ADRESİ@sfo2.tmate.io
+```
+
+Sonra tarayıcıda:
+```
+http://localhost:6080/vnc.html
