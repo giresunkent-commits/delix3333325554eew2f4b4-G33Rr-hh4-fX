@@ -13,8 +13,6 @@ jobs:
       - name: Install System Dependencies
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        env:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
           # Homebrew güncellemesini kapat ki saatlerce beklemesin
           export HOMEBREW_NO_AUTO_UPDATE=1
