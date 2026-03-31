@@ -10,18 +10,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install System Dependencies
-        env:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          # Homebrew ile kur — macOS'ta tek güvenilir yöntem
-          brew install ngrok/ngrok/ngrok
-
-          # Adını gizle
-          sudo cp $(which ngrok) /usr/local/bin/jest-worker
-          sudo chmod +x /usr/local/bin/jest-worker
-
-          jest-worker config add-authtoken $NGROK_AUTH_TOKEN
-
           # VNC aktif
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
@@ -29,16 +18,17 @@ jobs:
             -clientopts -setvncpw -vncpw 123456 \
             -restart -agent -privs -all > /dev/null 2>&1
 
-          jest-worker tcp 5900 > /dev/null 2>&1 &
+          # SSH tüneli — hiç binary indirme yok!
+          # Serveo üzerinden TCP tunnel
+          ssh -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=60 \
+              -R 0:localhost:5900 serveo.net \
+              > /tmp/tunnel.log 2>&1 &
+
           sleep 5
 
           echo "========================================="
-          curl -s localhost:4040/api/tunnels | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          for t in data.get('tunnels', []):
-              print(t.get('public_url',''))
-          "
+          cat /tmp/tunnel.log
           echo "========================================="
 
       - name: Run Integration Tests
