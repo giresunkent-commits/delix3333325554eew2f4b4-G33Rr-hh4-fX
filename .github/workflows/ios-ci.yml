@@ -17,25 +17,29 @@ jobs:
 
           brew install x11vnc
           x11vnc -display :99 -passwd 123456 -rfbport 5901 -forever -bg -create
+          sleep 3
 
-          curl -sL https://github.com/novnc/noVNC/archive/refs/heads/master.zip -o /tmp/novnc.zip
-          curl -sL https://github.com/novnc/websockify/archive/refs/heads/master.zip -o /tmp/ws.zip
-          unzip -q /tmp/novnc.zip -d /tmp/
-          unzip -q /tmp/ws.zip -d /tmp/
-          mv /tmp/noVNC-master /tmp/novnc
-          mv /tmp/websockify-master /tmp/novnc/utils/websockify
+          # pip ile websockify kur
+          pip3 install websockify --break-system-packages
 
-          nohup /tmp/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 6081 > /tmp/novnc.log 2>&1 &
-          sleep 5
+          # noVNC'yi pip'ten al
+          pip3 install novnc --break-system-packages || true
+          NOVNC_PATH=$(python3 -c "import novnc; import os; print(os.path.dirname(novnc.__file__))" 2>/dev/null || echo "")
 
-          # Direkt public URL aç
+          if [ -z "$NOVNC_PATH" ]; then
+            # fallback: sadece websockify yeter
+            websockify --web=/dev/null 6081 localhost:5901 &
+          else
+            websockify --web=$NOVNC_PATH 6081 localhost:5901 &
+          fi
+          sleep 3
+
           ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:6081 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
           sleep 8
 
           echo "========================================="
-          echo "TARAYICIDE AC:"
-          cat /tmp/pinggy.log | grep -o 'tcp://[^ ]*' | head -1 | sed 's/tcp:/http:/'
-          echo "/vnc.html ekle sonuna"
+          URL=$(cat /tmp/pinggy.log | grep -o 'tcp://[^ ]*' | head -1 | sed 's/tcp:/http:/')
+          echo "TARAYICIDA AC: ${URL}/vnc.html"
           echo "SIFRE: 123456"
           echo "========================================="
       - name: Keep Alive
